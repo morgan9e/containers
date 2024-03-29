@@ -26,6 +26,6 @@ ENV SHELL=/bin/bash \
     WAYLAND_DISPLAY=wayland-1 \
     MOZ_ENABLE_WAYLAND=1 \
     HOME=/home/$USER \
-    DISPLAY= \
+    DISPLAY=
     
 ENTRYPOINT ["weston", "--fullscreen"]

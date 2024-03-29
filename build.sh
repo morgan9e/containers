@@ -1,0 +1,1 @@
+for i in *.containerfile; do docker build -t ghcr.io/morgan9e/containers:${i%.*} --label org.opencontainers.image.source="https://github.com/morgan9e/containers"  -f $i .; docker push ghcr.io/morgan9e/containers:${i%.*}; done

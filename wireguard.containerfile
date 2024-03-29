@@ -1,7 +1,7 @@
 FROM debian:12
 
 RUN apt-get update -y && \
-    apt-get install -y wireguard-tools openssh-server iproute2 openresolv --no-install-recommends && \
+    apt-get install -y wireguard-tools openssh-server iproute2 openresolv xxd --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ssh-keygen -A && \
