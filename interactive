@@ -1,0 +1,93 @@
+#!/bin/bash
+
+PS1="\033[32m$(echo $(pwd) | sed "s|^$HOME|~|")\033[00m ($(id -u)) $ "
+OUTPUT="./Containerfile"
+:>$OUTPUT
+cat <<-EOF
+  ** Containerfile Generator Wrapper **
+EOF
+
+HISTFILE="./hist"
+touch "$HISTFILE"
+HISTSIZE=1000
+SAVEHIST=1000
+history -r "$HISTFILE"
+
+while true; do
+    echo -ne "${PS1}"
+    read -e -r CMD
+    if [[ -z "$CMD" ]]; then
+        continue
+    fi
+    history -s "$CMD"
+    IFS=' ' read -r -a ARGS <<< "$CMD"
+    case ${ARGS[0]} in
+      vim)
+        if [ ${#ARGS[@]} -ne 2 ]; then
+          echo You can only edit one file at once.;
+          continue;
+        fi
+        FILE=${ARGS[1]}
+        if [ ! -d $(dirname "$FILE") ]; then
+          mkdir -p $(dirname "$FILE");
+          echo 'RUN mkdir -p \"$(dirname "$FILE")\"' >> $OUTPUT
+        fi
+        FILE=$(realpath $FILE)
+        TMP=$(mktemp)
+        if [ ! -f $FILE ]; then
+          touch "$FILE"
+          echo RUN touch \"$FILE\" >> $OUTPUT
+        else
+          cat "$FILE" > $TMP
+        fi
+        vim "$FILE"
+
+cat <<-END | tee Containerfile
+  RUN cat <<'EOF' | patch -p1
+    $(diff -Nau "$TMP" "$FILE")
+  EOF
+END
+        ;;
+      su)
+        echo Use USER instead if you want to change user.
+        eval su -s $0 ${ARGS[1]}
+        ;;
+      ls|pwd|ip|exit)
+        echo '* Not recoreded into Containerfile *'
+        eval ${ARGS}
+        ;;
+      COPY)
+        echo COPY ${ARGS[1]} >> $OUTPUT;
+        echo Make sure you preserve path when building image.
+        echo cp /host/${ARGS[1]} ${ARGS[2]};
+        ;;
+      ENV)
+        echo "ENV ${ARGS[@]:1}" | sed 's/ /="/;s/$/"/' >> $OUTPUT;
+        for i in ${ARGS[@]:1}; do
+          eval $i;
+        done
+        ;;
+      USER)
+        echo USER ${ARGS[1]} >> $OUTPUT;
+        su ${ARGS[1]} /interactive
+        ;;
+      ARG)
+        [[ ${#ARGS[@]} -eq 2 ]] && echo ARG ${ARGS[1]} >> $OUTPUT;
+        ;;
+      WORKDIR)
+        echo WORKDIR ${ARGS[1]} >> $OUTPUT;
+        if [ ! -d "${ARGS[1]}" ]; then
+            mkdir -p "${ARGS[1]}"
+            echo "RUN mkdir -p ${ARGS[1]}" >> $OUTPUT;
+        fi
+        ;;
+      ENTRYFILE)
+        echo ENTRYFILE ${ARGS[1]} >> $OUTPUT;
+        ;;
+      *)
+        echo RUN "$CMD" >> $OUTPUT;
+        eval "$CMD";
+        ;;
+  esac
+  history -w "$HISTFILE"
+done

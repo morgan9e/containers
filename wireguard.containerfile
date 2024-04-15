@@ -1,7 +1,8 @@
 FROM debian:12
 
 RUN apt-get update -y && \
-    apt-get install -y wireguard-tools openssh-server iproute2 openresolv xxd iptables-persistent --no-install-recommends && \
+    apt-get install -y openssh-server iproute2 openresolv xxd iptables-persistent --no-install-recommends && \
+    apt-get install -y wireguard-tools && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ssh-keygen -A && \
@@ -29,7 +30,7 @@ fi
 
 cp /wg0.conf /etc/wireguard/$A.conf
 chmod 600 /etc/wireguard/$A.conf
-echo $A
+bash
 wg-quick up $A
 
 mkdir /run/sshd
